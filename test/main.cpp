@@ -1,8 +1,3 @@
-////////////////////////////////////////////////////////////
-// Headers
-////////////////////////////////////////////////////////////
-
-/// GLEW is needed to provide OpenGL extensions.
 #include <GL/glew.h>
 
 #include <SFML/Graphics.hpp>
@@ -18,6 +13,7 @@ int main()
 
 	const sf::Uint16 numColor = 16;
 	const sf::Uint16 winSize = 1000;
+
 	// Request a 24-bits depth buffer when creating the window
 	sf::ContextSettings contextSettings;
 	contextSettings.depthBits = 24;
@@ -25,18 +21,10 @@ int main()
 
 	// Create the main window
 	sf::RenderWindow window(sf::VideoMode(winSize, winSize), "press E for refresh field", sf::Style::Titlebar | sf::Style::Close, contextSettings);
-	//window.setActive(true);
-	//glViewport(0, 0, window.getSize().x, window.getSize().y);
-	//window.setActive(true);
 
-
-	//sf::View view;
-	//view.reset(sf::FloatRect(0, 0, winSize, winSize));
-	//window.setView(view);
-
-
-	//window.setVerticalSyncEnabled(true);
 	window.setFramerateLimit(60);
+
+
 	// Initialise GLEW for the extended functions.
 	glewExperimental = GL_TRUE;
 	if (glewInit() != GLEW_OK)
@@ -47,17 +35,7 @@ int main()
 	sf::Time time1 = clock.getElapsedTime();
 	sf::Time time2 = clock.getElapsedTime();
 	sf::Uint16 fps = 0;
-	sf::Sprite sprite;
 
-
-	sf::RenderTexture texture;
-	if (!texture.create(winSize, winSize, contextSettings))
-		return -1;
-	//texture.setView(view);
-	//texture.setActive(true);
-	//sprite.setTexture(texture.getTexture());
-	//glViewport(0, 0, winSize, winSize);
-	//texture.setActive(false);
 
 
 
@@ -65,12 +43,6 @@ int main()
 
 
 	// content
-
-
-
-
-
-
 	sf::Glsl::Vec4	colors[numColor] = {	sf::Glsl::Vec4(0, 0, 0, 255),
 											sf::Glsl::Vec4(15, 15, 15, 255),
 											sf::Glsl::Vec4(0, 0, 255, 255),
@@ -89,8 +61,12 @@ int main()
 											sf::Glsl::Vec4(255, 255, 240, 255)
 	};
 
-	
 
+
+	//rendertexture
+	sf::RenderTexture texture;
+	if (!texture.create(winSize, winSize, contextSettings))
+		return -1;
 
 	texture.clear(sf::Color::Blue);
 	sf::RectangleShape rectangle(sf::Vector2f(1U, 1U));
@@ -108,13 +84,17 @@ int main()
 	
 	texture.display();
 
+	//data texture
 
-
-
+	sf::Sprite sprite;
 	sf::Texture tex;
 	tex.create(winSize, winSize);
 
+	tex.update(texture.getTexture());
+	sprite.setTexture(tex);
 
+
+	//window triangles
 
 	float vertices[] = {
 	-1.0f,	-1.0f, 0.0f, 0, 1,
@@ -122,22 +102,23 @@ int main()
 	 1.0f,	1.0f, 0.0f, 1, 0,
 	 1.0f,	-1.0f, 0.0f, 1, 1
 	};
-	unsigned int indices[] = {  // note that we start from 0!
-		0, 1, 2,   // first triangle
-		0, 2, 3    // second triangle
+	unsigned int indices[] = { 
+		0, 1, 2,
+		0, 2, 3 
 	};
 
 
-
-	texture.setActive(true);
+	//shader
 
 	sf::Shader sh;
-	sh.loadFromFile("Shaders/screen.vert", "Shaders/screen.frag"); // load the shader
+	sh.loadFromFile("Shaders/screen.vert", "Shaders/screen.frag");
 
 	if (!sh.isAvailable()) {
 		std::cout << "The shader is not available\n";
 	}
 
+
+	//buf objects
 
 	unsigned int VBO;
 	glGenBuffers(1, &VBO);
@@ -164,19 +145,16 @@ int main()
 	glBindVertexArray(0);
 
 
-	texture.setActive(false);
 
-	
 
-	// Start game loop
+	//game loop
 	while (!exit)
 	{
 
 
 
-		tex.update(texture.getTexture());
-		sprite.setTexture(tex);
 
+		//fps
 		time2 = clock.getElapsedTime();
 		fps++;
 		if ((time2.asSeconds() - time1.asSeconds()) >= 1.0)
@@ -189,11 +167,11 @@ int main()
 		}
 
 
-		// Process events
+		//process events
 		sf::Event event;
 		while (window.pollEvent(event))
 		{
-			// Close window: exit
+			//close window: exit
 			if (event.type == sf::Event::Closed)
 			{
 				exit = true;
@@ -201,14 +179,14 @@ int main()
 				break;
 			}
 
-			// Escape key: exit
+			//escape key: exit
 			if ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::Escape))
 			{
 				exit = true;
 				break;
 			}
 
-
+			//refresh field
 			if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
 			{
 				
@@ -232,58 +210,44 @@ int main()
 
 		
 
+
+
+		//render on screen
 		window.setActive(true);
-
-
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
-
-
 		window.setActive(false);
 		
 		window.draw(sprite);
-		
-
 		window.display();
 
 
-		
+		//update rendertexture
 		texture.setActive(true);
+
 		glBindVertexArray(VAO);
 		sf::Shader::bind(&sh);
 		sh.setUniform("tex", tex);
 		sh.setUniformArray("colors", colors, numColor);
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
-
-
-		
-
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-
-
-
 		sf::Shader::bind(nullptr);
 		glBindVertexArray(0);
 	
 
 		texture.display();
-
-
-
-
 		texture.setActive(false);
 
 
+		//update data texture
 
-
+		tex.update(texture.getTexture());
+		sprite.setTexture(tex);
 
 
 	}
 
-
-	//Destroy all buffers, shaders and programs.
 	glDeleteBuffers(1, &VBO);
 	glDeleteBuffers(1, &EBO);
 	glDeleteVertexArrays(1, &VAO);
